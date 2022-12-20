@@ -1,23 +1,27 @@
 #include "Window.h"
+#include <functional>
 
 namespace Orange {
 
     //Constructor and Destructor
     Window::Window(std::wstring _title, std::wstring _class_name, HINSTANCE _h_instance, int _n_cmd_show) {
+        w_state = new StateInfo;
+        w_state->window = this;
         w_title = _title;
         w_class_name = _class_name;
         w_h_instance = _h_instance;
         w_cmd_show = _n_cmd_show;
     }
-
+            
     Window::~Window() {
-
+        delete w_state;
     }
 
     //Window Types
     void Window::CreateMainWindow(int _width, int _height, int start_x, int start_y) {
         w_width = _width;
         w_height = _height;
+        is_main_window = true;
 
         SetupWindowClassEx();
         RegisterWindow();
@@ -35,37 +39,50 @@ namespace Orange {
     }
 
     //Window Procedure
-    LRESULT Window::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-        PAINTSTRUCT ps;
-        HDC hdc;
-        TCHAR greeting[] = _T("Hello, Windows desktop!");
-
-        switch (message)
+    LRESULT Window::HandleMessage(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+        switch (uMsg)
         {
-        case WM_PAINT:
-            hdc = BeginPaint(hWnd, &ps);
 
-            // Here your application is laid out.
-            // For this introduction, we just print out "Hello, Windows desktop!"
-            // in the top left corner.
-
-            ;
-            FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(150, 0, 0)));
-            TextOut(hdc,
-                5, 5,
-                greeting, _tcslen(greeting));
-            // End application-specific layout section.
-
-            EndPaint(hWnd, &ps);
-            break;
         case WM_DESTROY:
-            PostQuitMessage(0);
-            break;
+            if (is_main_window) {
+                PostQuitMessage(0);
+            }
+            return 0;
 
-        default:
-            return DefWindowProc(hWnd, message, wParam, lParam);
+        case WM_PAINT:
+        {
+            PAINTSTRUCT ps;
+            HDC hdc = BeginPaint(hwnd, &ps);
+            FillRect(hdc, &ps.rcPaint, w_background_color);
+            EndPaint(hwnd, &ps);
+            return 0;
         }
 
+        default:
+            return DefWindowProc(hwnd, uMsg, wParam, lParam);
+        }
+
+        return TRUE;
+    }
+    
+    LRESULT CALLBACK Window::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+        StateInfo* pThis = NULL;
+
+        if (uMsg == WM_CREATE) {
+            UpdateWindow(hwnd);
+            CREATESTRUCT* pCreate = (CREATESTRUCT*)lParam;
+            pThis = reinterpret_cast<StateInfo*>(pCreate->lpCreateParams);
+            SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR)pThis);
+        } else {
+            pThis = reinterpret_cast<StateInfo*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+        }
+
+        if (pThis) {
+            return pThis->window->HandleMessage(hwnd, uMsg, wParam, lParam);
+        } else {
+            return DefWindowProc(hwnd, uMsg, wParam, lParam);
+        }
+        
         return 0;
     }
 
@@ -111,11 +128,10 @@ namespace Orange {
             WS_OVERLAPPEDWINDOW,
             w_width, w_height,
             start_x, start_y,
-            NULL,
+            temp_hwnd,
             NULL,
             w_cex.hInstance,
-            NULL
-        );
+            w_state);
 
         if (!w_hwnd)
         {
@@ -132,11 +148,11 @@ namespace Orange {
     }
 
     //Getters
-    /*StateInfo* Window::GetAppState() {
+    StateInfo* Window::GetAppState() {
         LONG_PTR ptr = GetWindowLongPtr(w_hwnd, GWLP_USERDATA);
         StateInfo* pState = reinterpret_cast<StateInfo*>(ptr);
         return pState;
-    }*/
+    }
 
     HWND Window::GetHWND() {
         return w_hwnd;
@@ -148,6 +164,9 @@ namespace Orange {
     }
 
     void Window::SetBackgroundColor(Color color) {
+        PAINTSTRUCT ps;
         w_background_color = CreateSolidBrush(RGB(color.GetR(), color.GetG(), color.GetB()));
+        //InvalidateRect(w_hwnd, &ps.rcPaint, true);
+        RedrawWindow(w_hwnd, &ps.rcPaint, NULL, RDW_UPDATENOW);
     }
 }
