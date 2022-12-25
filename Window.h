@@ -12,8 +12,11 @@ namespace Orange {
 	public:		//Constructor and Destructor
 		Window(std::wstring _title, std::wstring _class_name, HINSTANCE _h_instance, int _n_cmd_show);
 		~Window();
+		static Window* w_main;
 
 	private:	//Member Variables
+		HMENU w_hmenu_bar;			//Window Menu Bar: Optional
+		bool exit = false;			//Has the Window been closed
 		bool is_main_window = false;//Main Window? Close this window and it quits the program
 		HBRUSH w_background_color;	//Background Color
 		int w_cmd_show;				//Startup Info: Command Line Arguments
@@ -27,7 +30,7 @@ namespace Orange {
 		int w_width, w_height;		//Window width and height
 
 	public:		//Window Creation
-		void CreateMainWindow(int _width, int _height, int start_x, int start_y);
+		bool CreateMainWindow(int _width, int _height, int start_x, int start_y);
 		void CreateChildWindow(HWND hwnd, int _width, int _height, int start_x, int start_y);
 
 	private:	//Window Procedure
@@ -47,8 +50,8 @@ namespace Orange {
 		//Setters
 		void SetTitle(LPCWSTR _title);
 		void SetBackgroundColor(Color color);
+		bool GetExit();
 	};
-
 
 	struct StateInfo {
 		Window *window;

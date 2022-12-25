@@ -1,1 +1,2 @@
 C:\Users\camer\Documents\Projects\OrangeWindowWrapper\x64\Debug\OrangeWindowWrapper.exe
+C:\Users\camer\Documents\C++ Projects\OrangeWindowWrapper\x64\Debug\OrangeWindowWrapper.exe

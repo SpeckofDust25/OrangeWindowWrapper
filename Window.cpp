@@ -2,6 +2,7 @@
 #include <functional>
 
 namespace Orange {
+    Window* Window::w_main = nullptr;
 
     //Constructor and Destructor
     Window::Window(std::wstring _title, std::wstring _class_name, HINSTANCE _h_instance, int _n_cmd_show) {
@@ -18,14 +19,24 @@ namespace Orange {
     }
 
     //Window Types
-    void Window::CreateMainWindow(int _width, int _height, int start_x, int start_y) {
+
+    //True: Success, False: Failed
+    bool Window::CreateMainWindow(int _width, int _height, int start_x, int start_y) {
         w_width = _width;
         w_height = _height;
         is_main_window = true;
+        
+        if (w_main == nullptr) {
+            Orange::Window::w_main = this;
+        } else {
+            return false;
+        }
 
         SetupWindowClassEx();
         RegisterWindow();
         InstanceWindow(start_x, start_y);
+
+        return true;
     }
 
     void Window::CreateChildWindow(HWND hwnd, int _width, int _height, int _start_x, int _start_y) {
@@ -47,6 +58,7 @@ namespace Orange {
             if (is_main_window) {
                 PostQuitMessage(0);
             }
+            exit = true;
             return 0;
 
         case WM_PAINT:
@@ -121,7 +133,7 @@ namespace Orange {
             temp_hwnd = w_parent_hwnd;
         }
 
-        HWND w_hwnd = CreateWindowEx(
+        w_hwnd = CreateWindowEx(
             WS_EX_OVERLAPPEDWINDOW,
             w_class_name.c_str(),
             w_title.c_str(),
@@ -158,6 +170,10 @@ namespace Orange {
         return w_hwnd;
     }
 
+    bool Window::GetExit() {
+        return exit;
+    }
+
     //Setters
     void Window::SetTitle(LPCWSTR newTitle) {	//Param: Should be a Wide Character when passed
         SetWindowTextW(w_hwnd, newTitle);
@@ -165,8 +181,8 @@ namespace Orange {
 
     void Window::SetBackgroundColor(Color color) {
         PAINTSTRUCT ps;
-        w_background_color = CreateSolidBrush(RGB(color.GetR(), color.GetG(), color.GetB()));
-        //InvalidateRect(w_hwnd, &ps.rcPaint, true);
-        RedrawWindow(w_hwnd, &ps.rcPaint, NULL, RDW_UPDATENOW);
+        w_background_color = (HBRUSH)CreateSolidBrush(RGB(color.GetR(), color.GetG(), color.GetB()));
+        InvalidateRect(w_hwnd, &ps.rcPaint, true);
+        UpdateWindow(w_hwnd);
     }
 }
